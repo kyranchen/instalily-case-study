@@ -2,7 +2,7 @@
 
 Chat interface for the PartSelect refrigerator/dishwasher parts agent, styled to
 PartSelect's teal-and-white branding. Built on the provided Create React App
-starter and wired to the [FastAPI backend](../instalily-backend).
+starter and wired to the [FastAPI backend](https://github.com/kyranchen/instalily-backend).
 
 The chat is **read-only customer support** over catalog knowledge: look up a
 part, check whether one fits a model, find a part by symptom, or get repair
@@ -13,7 +13,7 @@ product cards (image, part number, price) beneath the message.
 
 ## Prerequisites
 
-The [backend](../instalily-backend) must be running on `http://localhost:8000`
+The [backend](https://github.com/kyranchen/instalily-backend) must be running on `http://localhost:8000`
 first — see its README. The chat shows a friendly "I can't reach the assistant"
 message if the backend is down.
 
