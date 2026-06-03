@@ -1,70 +1,91 @@
-# Getting Started with Create React App
+# PartSelect Assistant — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Chat interface for the PartSelect refrigerator/dishwasher parts agent, styled to
+PartSelect's teal-and-white branding. Built on the provided Create React App
+starter and wired to the [FastAPI backend](../instalily-backend).
 
-## Available Scripts
+The chat is **read-only customer support** over catalog knowledge: look up a
+part, check whether one fits a model, find a part by symptom, or get repair
+guidance. When the agent references specific parts, they render as clickable
+product cards (image, part number, price) beneath the message.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Prerequisites
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The [backend](../instalily-backend) must be running on `http://localhost:8000`
+first — see its README. The chat shows a friendly "I can't reach the assistant"
+message if the backend is down.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Run
 
-### `npm test`
+```bash
+cd instalily-case-study
+npm install
+npm start
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Opens at [http://localhost:3000](http://localhost:3000).
 
-### `npm run build`
+> If `npm install` fails with an `EACCES` / cache permission error, the npm
+> cache has root-owned files. Use an isolated cache for one run:
+> `npm install --cache /tmp/npm-cache`. Subsequent `npm start` runs are
+> unaffected.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+To point at a non-default backend URL:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+REACT_APP_BACKEND_URL=http://localhost:9000 npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## What was changed from the starter
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+| File | Change |
+|------|--------|
+| `src/api/api.js` | Replaced the stub with a real `POST /chat` call; generates and persists a `session_id` (UUID) in `sessionStorage`; handles network/server errors gracefully |
+| `src/components/ChatWindow.js` | Renders product cards under assistant messages; typing indicator while awaiting a reply; input disabled mid-request |
+| `src/components/ProductCard.js` / `.css` | New — product card (image, name, part #, price) linking to the PartSelect page |
+| `src/components/ChatWindow.css` | PartSelect teal palette, height-bounded scroll area, markdown styling, focus states |
+| `src/App.css` / `src/App.js` | Teal header, renamed to "PartSelect Assistant" |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## How it talks to the backend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+`getAIMessage(text)` POSTs `{ message, session_id }` to `/chat`. The
+`session_id` is created once per browser tab and kept in `sessionStorage`, which
+mirrors the backend's in-memory, per-session model — so multi-turn context
+("is *this part* compatible with my model?") resolves correctly within a tab and
+resets when the tab closes.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+The response shape is:
 
-## Learn More
+```json
+{
+  "response": "markdown text",
+  "parts": [
+    { "part_number": "PS11752778", "name": "...", "price": "$47.40",
+      "image_url": "...", "source_url": "..." }
+  ],
+  "tool_calls": [ ... ]
+}
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+`response` is rendered as markdown; each entry in `parts` becomes a product
+card. `tool_calls` is available for debugging but not displayed.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Feature choices
 
-### Code Splitting
+Scoped deliberately to **support over a read-only catalog** rather than
+mock order/cart mutations:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- **Part lookup** by PS number or manufacturer part number
+- **Compatibility checks** against a specific appliance model
+- **Symptom-based search** ("my ice maker is noisy") returning ranked candidates
+- **Repair guidance** grounded in catalog content
+- **Product cards** so users see and click through to the actual part
+- **Conversational memory** so follow-ups can say "this part" / "my model"
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Cart and order flows were intentionally left out: the provided starter has no
+cart, and the agent's value here is accurate parts knowledge, not transaction
+plumbing.
